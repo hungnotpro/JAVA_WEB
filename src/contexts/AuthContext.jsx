@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import authService from '../services/authService';
-import UserModel from '../models/UserModel';
+import { getUserFromToken, isTokenExpired } from '../utils/jwtUtils';
 
 // Create authentication context
 const AuthContext = createContext();
@@ -15,40 +15,49 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     // Load user from localStorage on initialization
     try {
-      const userData = authService.getCurrentUser();
+      const token = localStorage.getItem('token');
       
-      if (userData) {
-        // Chuyển dữ liệu thô thành instance của UserModel
-        setCurrentUser(new UserModel(userData));
+      if (token && !isTokenExpired(token)) {
+        const userData = localStorage.getItem('user');
+        if (userData) {
+          // Nếu có user data, sử dụng data đó
+          setCurrentUser(JSON.parse(userData));
+        } else {
+          // Nếu không, lấy từ token
+          const userFromToken = getUserFromToken(token);
+          setCurrentUser(userFromToken);
+          
+          // Lưu vào localStorage để lần sau
+          localStorage.setItem('user', JSON.stringify(userFromToken));
+        }
+      } else if (token) {
+        // Token hết hạn
+        console.log('Token expired, logging out');
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
       }
     } catch (error) {
       console.error('Error loading user data:', error);
     } finally {
       setLoading(false);
     }
-  }, []);  const login = async (email, password) => {
+  }, []);
+
+  // Hàm đăng nhập
+  const login = async (email, password) => {
     try {
       setError(null);
       const data = await authService.loginAdmin(email, password);
       
-      // Đảm bảo dữ liệu user từ API có đúng định dạng hoặc lấy từ token
-      let user;
       if (data && data.token) {
-        if (data.user) {
-          // Sử dụng thông tin user từ response nếu có
-          user = UserModel.fromAPI(data.user);
-        } else {
-          // Nếu không có user trong response, lấy từ token
-          const userFromToken = authService.getUserFromToken(data.token);
-          user = UserModel.fromAPI(userFromToken);
-        }
+        const userInfo = data.user || getUserFromToken(data.token, email);
         
         // Lưu token và dữ liệu người dùng
         localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(user.toJSON()));
+        localStorage.setItem('user', JSON.stringify(userInfo));
         
-        setCurrentUser(user);
-        return user;
+        setCurrentUser(userInfo);
+        return userInfo;
       } else {
         throw new Error('Dữ liệu đăng nhập không hợp lệ');
       }
@@ -57,39 +66,44 @@ export const AuthProvider = ({ children }) => {
       setError(error.message || 'Đăng nhập thất bại');
       throw error;
     }
-  };  const loginWithGoogle = async (token) => {
+  };
+
+  // Đăng nhập với Google
+  const loginWithGoogle = async (token) => {
     try {
       setError(null);
       
-      console.log('Processing login with token:', token);
+      if (!token) {
+        throw new Error('Token không hợp lệ');
+      }
       
-      // Với luồng OAuth2 của Spring Boot, chúng ta nhận trực tiếp JWT token
-      // Không cần gọi API nữa vì backend đã tạo và gửi token cho chúng ta
+      // Xử lý token OAuth từ Google
+      const userFromToken = getUserFromToken(token);
+      userFromToken.role = 'SINH_VIEN'; // Đảm bảo role là SINH_VIEN
       
-      // Lấy thông tin từ token
-      const userFromToken = authService.getUserFromToken(token);
-      console.log('User extracted from token:', userFromToken);
-      
-      const user = UserModel.fromAPI(userFromToken);
-      console.log('User model created:', user);
-      
-      // Lưu token và dữ liệu người dùng
       localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user.toJSON()));
-      console.log('User data saved to localStorage');
+      localStorage.setItem('user', JSON.stringify(userFromToken));
       
-      setCurrentUser(user);
-      return user;
+      setCurrentUser(userFromToken);
+      return userFromToken;
     } catch (error) {
-      console.error('Google login error in context:', error);
-      setError(error.message || 'Đăng nhập thất bại');
+      console.error('Google login error:', error);
+      setError(error.message || 'Đăng nhập Google thất bại');
       throw error;
     }
   };
 
+  // Đăng xuất
   const logout = () => {
-    authService.logout();
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
     setCurrentUser(null);
+  };
+
+  // Kiểm tra đã đăng nhập chưa
+  const isAuthenticated = () => {
+    const token = localStorage.getItem('token');
+    return !!token && !isTokenExpired(token);
   };
 
   const value = {
@@ -97,14 +111,14 @@ export const AuthProvider = ({ children }) => {
     login,
     loginWithGoogle,
     logout,
-    isAuthenticated: authService.isAuthenticated,
+    isAuthenticated,
     error,
     loading
   };
 
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 };

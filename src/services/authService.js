@@ -1,47 +1,33 @@
-import axios from 'axios';
+import apiClient from '../utils/apiClient';
+import { parseJwtToken } from '../utils/jwtUtils';
 
 const API_URL = 'http://localhost:8080/api';
 
-// Hàm phân tích JWT để lấy thông tin người dùng
-const parseJwt = (token) => {
-  try {
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-    }).join(''));
-
-    return JSON.parse(jsonPayload);
-  } catch (e) {
-    console.error('Error parsing JWT:', e);
-    return {};
-  }
-};
-
 // Authentication services
-export const authService = {  // Admin login with email and password
+export const authService = {
+  // Admin login with email and password
   loginAdmin: async (email, password) => {
     try {
-      const response = await axios.post(`${API_URL}/auth/login`, {
+      const response = await apiClient.post('/auth/login', {
         email,
         password
       });
       
       console.log('API response:', response.data);
       
-      // Xử lý cấu trúc phản hồi mới: { code: 1000, result: { token, authenticated } }
+      // Xử lý cấu trúc phản hồi: { code: 1000, result: { token, authenticated } }
       if (response.data && response.data.code === 1000 && response.data.result && response.data.result.token) {
         const token = response.data.result.token;
         
         // Giải mã JWT để lấy thông tin user
-        const tokenPayload = parseJwt(token);
+        const tokenPayload = parseJwtToken(token);
         console.log('Token payload:', tokenPayload);
         
         // Tạo thông tin user từ JWT payload
         const user = {
           email: tokenPayload.email || email,
-          role: tokenPayload.scope || 'ADMIN', // Giữ nguyên scope ADMIN
-          name: tokenPayload.name || email.split('@')[0] // Tạm lấy phần trước @ làm tên
+          role: tokenPayload.scope || 'ADMIN',
+          name: tokenPayload.name || email.split('@')[0]
         };
         
         return {
@@ -54,21 +40,23 @@ export const authService = {  // Admin login with email and password
     } catch (error) {
       throw error.response ? error.response.data : new Error('Network error');
     }
-  },  // Student login with Google token
+  },
+
+  // Student login with Google token
   loginWithGoogle: async (token) => {
     try {
-      const response = await axios.post(`${API_URL}/auth/google-login`, {
+      const response = await apiClient.post('/auth/google-login', {
         token
       });
       
       console.log('Google login response:', response.data);
       
-      // Xử lý cấu trúc phản hồi mới: { code: 1000, result: { token, authenticated } }
+      // Xử lý cấu trúc phản hồi: { code: 1000, result: { token, authenticated } }
       if (response.data && response.data.code === 1000 && response.data.result && response.data.result.token) {
         const accessToken = response.data.result.token;
         
         // Giải mã JWT để lấy thông tin user
-        const tokenPayload = parseJwt(accessToken);
+        const tokenPayload = parseJwtToken(accessToken);
         
         // Tạo thông tin user từ JWT payload
         const user = {
@@ -99,6 +87,7 @@ export const authService = {  // Admin login with email and password
   isAuthenticated: () => {
     return !!localStorage.getItem('token');
   },
+
   // Get current user from localStorage
   getCurrentUser: () => {
     const user = localStorage.getItem('user');
@@ -109,7 +98,7 @@ export const authService = {  // Admin login with email and password
     // Nếu không có user trong localStorage nhưng có token, lấy từ token
     const token = localStorage.getItem('token');
     if (token) {
-      const tokenPayload = parseJwt(token);
+      const tokenPayload = parseJwtToken(token);
       return {
         email: tokenPayload.email,
         role: tokenPayload.scope || 'SINH_VIEN',
@@ -119,11 +108,12 @@ export const authService = {  // Admin login with email and password
     
     return null;
   },
-    // Lấy thông tin user từ token JWT
+
+  // Lấy thông tin user từ token JWT
   getUserFromToken: (token) => {
     if (!token) return null;
     
-    const tokenPayload = parseJwt(token);
+    const tokenPayload = parseJwtToken(token);
     // Xác định role từ scope trong token
     let role = tokenPayload.scope || 'STUDENT';
     

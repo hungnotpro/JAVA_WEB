@@ -11,13 +11,27 @@ const thanhVienService = {
    */
   getThanhVienByNhom: async (nhomId) => {
     try {
+      console.log(`Getting members for group ${nhomId}`);
       const response = await apiClient.get(`/member/nhom/${nhomId}`);
-      return response.data.result;
+      
+      // Kiểm tra response structure
+      if (response.data && response.data.code === 1000) {
+        return response.data.result;
+      } else {
+        throw new Error(response.data?.message || 'Lấy danh sách thành viên thất bại');
+      }
     } catch (error) {
       console.error(`Service error - getThanhVienByNhom(${nhomId}):`, error);
+      
+      // Xử lý error response từ server
+      if (error.response && error.response.data) {
+        throw new Error(error.response.data.message || 'Lấy danh sách thành viên thất bại');
+      }
+      
       throw error;
     }
   },
+
   /**
    * Thêm thành viên mới
    * @param {Object} thanhVienData Thông tin thành viên
@@ -25,16 +39,24 @@ const thanhVienService = {
    */
   addThanhVien: async (thanhVienData) => {
     try {
-      // Cấu trúc dữ liệu theo API spec
+      console.log('Service - addThanhVien called with:', thanhVienData);
+      
+      // Cấu trúc dữ liệu theo API spec (khớp với Dart code bạn cung cấp)
       const requestData = {
-        nhomId: thanhVienData.nhomId,
-        hoTen: thanhVienData.hoTen,
-        maSinhVien: thanhVienData.maSinhVien
+        nhomId: parseInt(thanhVienData.nhomId), // Đảm bảo là number
+        hoTen: thanhVienData.hoTen.trim(), // Loại bỏ khoảng trắng
+        maSinhVien: thanhVienData.maSinhVien.trim() // Loại bỏ khoảng trắng
       };
 
-      console.log('Adding member with data:', requestData);
+      console.log('Sending to API /member:', requestData);
       
-      const response = await apiClient.post('/member', requestData);
+      const response = await apiClient.post('/member', requestData, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      console.log('API Response:', response.data);
       
       // Kiểm tra response structure
       if (response.data && response.data.code === 1000) {
@@ -47,12 +69,15 @@ const thanhVienService = {
       
       // Xử lý error response từ server
       if (error.response && error.response.data) {
-        throw new Error(error.response.data.message || 'Thêm thành viên thất bại');
+        const errorMessage = error.response.data.message || 'Thêm thành viên thất bại';
+        console.error('Server error message:', errorMessage);
+        throw new Error(errorMessage);
       }
       
       throw error;
     }
   },
+
   /**
    * Cập nhật thành viên
    * @param {number} id ID của thành viên
@@ -61,14 +86,14 @@ const thanhVienService = {
    */
   updateThanhVien: async (id, thanhVienData) => {
     try {
-      // Cấu trúc dữ liệu cho update (chỉ gửi hoTen và maSinhVien)
+      console.log(`Updating member ${id} with:`, thanhVienData);
+      
+      // Cấu trúc dữ liệu cho update
       const requestData = {
-        hoTen: thanhVienData.hoTen,
-        maSinhVien: thanhVienData.maSinhVien
+        hoTen: thanhVienData.hoTen.trim(),
+        maSinhVien: thanhVienData.maSinhVien.trim()
       };
 
-      console.log(`Updating member ${id} with data:`, requestData);
-      
       const response = await apiClient.put(`/member/${id}`, requestData);
       
       // Kiểm tra response structure
@@ -88,6 +113,7 @@ const thanhVienService = {
       throw error;
     }
   },
+
   /**
    * Xóa thành viên
    * @param {number} id ID của thành viên

@@ -18,7 +18,6 @@ const thanhVienController = {
       throw error;
     }
   },
-
   /**
    * Thêm thành viên vào nhóm
    * @param {Object} thanhVienData Thông tin thành viên
@@ -26,7 +25,13 @@ const thanhVienController = {
    */
   addThanhVien: async (thanhVienData) => {
     try {
+      console.log('Controller - addThanhVien received data:', thanhVienData);
+      
       // Validate dữ liệu
+      if (!thanhVienData || typeof thanhVienData !== 'object') {
+        throw new Error('Dữ liệu thành viên không hợp lệ');
+      }
+
       if (!thanhVienData.hoTen || !thanhVienData.hoTen.trim()) {
         throw new Error('Họ tên thành viên không được để trống');
       }

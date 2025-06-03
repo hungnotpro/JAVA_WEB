@@ -44,8 +44,7 @@ const AdminNhomDetailPage = () => {
       fetchData();
     }
   }, [nhomId]);
-  
-  // Hàm fetch dữ liệu
+    // Hàm fetch dữ liệu
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -57,13 +56,24 @@ const AdminNhomDetailPage = () => {
       
       // Fetch thông tin đề tài
       if (nhomData.deTaiId) {
-        const deTaiData = await topicController.getTopicById(nhomData.deTaiId);
-        setDeTai(deTaiData);
+        try {
+          const deTaiData = await topicController.getTopicById(nhomData.deTaiId);
+          setDeTai(deTaiData);
+        } catch (error) {
+          console.warn('Could not fetch topic data:', error);
+          // Không set error vì có thể đề tài không tồn tại
+        }
       }
       
-      // Fetch danh sách thành viên
-      const thanhVienData = await thanhVienController.getThanhVienByNhom(nhomId);
-      setThanhViens(thanhVienData);
+      // Fetch danh sách thành viên từ API riêng biệt
+      try {
+        const thanhVienData = await thanhVienController.getThanhVienByNhom(nhomId);
+        setThanhViens(thanhVienData);
+      } catch (error) {
+        console.warn('Could not fetch members, using data from group:', error);
+        // Fallback: sử dụng thành viên từ thông tin nhóm
+        setThanhViens(nhomData.thanhVienNhoms || []);
+      }
     } catch (error) {
       setError('Không thể tải dữ liệu: ' + (error.message || ''));
       console.error('Error fetching data:', error);
@@ -157,13 +167,18 @@ const AdminNhomDetailPage = () => {
           tv.id === updatedMember.id ? updatedMember : tv
         ));
         
-        setActionSuccess('Cập nhật thành viên thành công!');
-      } else {
+        setActionSuccess('Cập nhật thành viên thành công!');      } else {
         // Thêm thành viên mới
-        const newMember = await thanhVienController.addThanhVien(
-          nhomId,
-          formData
-        );
+        const thanhVienData = {
+          nhomId: parseInt(nhomId),
+          hoTen: formData.hoTen,
+          maSinhVien: formData.maSinhVien,
+          email: formData.email || null
+        };
+        
+        console.log('Sending member data:', thanhVienData);
+        
+        const newMember = await thanhVienController.addThanhVien(thanhVienData);
         
         // Cập nhật state
         setThanhViens([...thanhViens, newMember]);

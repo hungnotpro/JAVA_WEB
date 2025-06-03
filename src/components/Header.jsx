@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import imga from '../../public/logo-STU.png';
 
 /**
  * Component Header chung cho toàn ứng dụng
@@ -23,7 +24,8 @@ const Header = () => {
           <div className="flex px-2 lg:px-0">
             <div className="flex-shrink-0 flex items-center">
               <Link to="/" className="text-xl font-bold text-indigo-600">
-                Hệ thống đăng ký đề tài
+                {/* Hệ thống đăng ký đề tài */}
+                <img src={imga} alt="Logo" className="ml-5 h-14 w-auto" />
               </Link>
             </div>
             <nav className="hidden lg:ml-6 lg:flex lg:space-x-8">

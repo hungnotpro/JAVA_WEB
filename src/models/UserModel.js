@@ -28,7 +28,7 @@ class UserModel {
       id: apiData.id,
       name: apiData.name || apiData.fullName || 'Unknown User',
       email: apiData.email || '',
-      role: apiData.role || 'STUDENT',
+      role: apiData.role || 'SINH_VIEN',
       avatar: apiData.avatar || apiData.picture
     });
   }

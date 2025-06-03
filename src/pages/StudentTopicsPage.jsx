@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
-import TopicCard from '../components/TopicCard';
+import Card from '../components/Card';
+import Button from '../components/Button';
 import Alert from '../components/Alert';
 import Spinner, { LoadingOverlay } from '../components/Spinner';
 import topicController from '../controllers/topicController';
-import useAuth from '../hooks/useAuth';
+import { useAuth } from '../contexts/AuthContext';
+import { formatDate } from '../utils/formatters';
 
 const StudentTopicsPage = () => {
   const [topics, setTopics] = useState([]);
@@ -33,35 +35,11 @@ const StudentTopicsPage = () => {
       console.error('Error fetching topics:', err);
     } finally {
       setLoading(false);
-    }
-  };
+    }  };
   
-  // Xem chi tiết đề tài
-  const handleViewDetails = (topicId) => {
-    navigate(`/student/topics/${topicId}`);
-  };
-  
-  // Đăng ký đề tài
-  const handleRegister = async (topicId) => {
-    try {
-      setActionLoading(true);
-      await topicController.registerTopic(topicId);
-      
-      // Refresh danh sách sau khi đăng ký
-      await fetchTopics();
-      
-      setActionSuccess('Đăng ký đề tài thành công!');
-      
-      // Tự động ẩn thông báo sau 3 giây
-      setTimeout(() => {
-        setActionSuccess(null);
-      }, 3000);
-    } catch (err) {
-      setError(err.message || 'Đã xảy ra lỗi khi đăng ký đề tài');
-      console.error('Error registering for topic:', err);
-    } finally {
-      setActionLoading(false);
-    }
+  // Đăng ký đề tài - Chuyển hướng đến trang đăng ký nhóm
+  const handleRegister = (topicId) => {
+    navigate(`/student/topics/dang-ky/${topicId}`);
   };
   
   // Hủy đăng ký đề tài
@@ -91,6 +69,78 @@ const StudentTopicsPage = () => {
     }
   };
   
+  // Component TopicCard inline để tùy chỉnh nút
+  const TopicCard = ({ topic }) => {
+    const isAvailable = topic.soNhomDaDangKy < topic.soNhomToiDa;
+    
+    return (
+      <Card className="h-full">
+        <div className="p-6 flex flex-col h-full">
+          <div className="flex-1">
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              {topic.tenDeTai}
+            </h3>
+            
+            <p className="text-sm text-gray-600 mb-4 line-clamp-3">
+              {topic.moTa}
+            </p>
+            
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <p className="text-xs text-gray-500">Số nhóm:</p>
+                <p className="text-sm font-medium">
+                  {topic.soNhomDaDangKy} / {topic.soNhomToiDa}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Thành viên:</p>
+                <p className="text-sm font-medium">
+                  {topic.soThanhVienToiThieu} - {topic.soThanhVienToiDa}
+                </p>
+              </div>
+            </div>
+            
+            <div className="mb-4">
+              <p className="text-xs text-gray-500">Thời gian tạo:</p>
+              <p className="text-sm">{formatDate(topic.thoiGianTao)}</p>
+            </div>
+          </div>
+          
+          <div className="flex space-x-2 mt-auto">
+            <Button
+              variant="secondary"
+              size="sm"
+              fullWidth
+              onClick={() => navigate(`/topics/${topic.id}`)}
+            >
+              Xem chi tiết
+            </Button>
+            
+            {isAvailable ? (
+              <Button
+                variant="primary"
+                size="sm"
+                fullWidth
+                onClick={() => handleRegister(topic.id)}
+              >
+                Đăng ký
+              </Button>
+            ) : (
+              <Button
+                variant="secondary"
+                size="sm"
+                fullWidth
+                disabled
+              >
+                Đã đầy
+              </Button>
+            )}
+          </div>
+        </div>
+      </Card>
+    );
+  };
+  
   return (
     <div className="min-h-screen bg-gray-100">
       <Header />
@@ -105,10 +155,10 @@ const StudentTopicsPage = () => {
             </h1>
           </div>
         </header>
-        
-        <main>
+          <main>
           <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div className="px-4 py-8 sm:px-0">
+              
               {/* Alert hiển thị lỗi */}
               {error && (
                 <Alert
@@ -144,10 +194,6 @@ const StudentTopicsPage = () => {
                     <TopicCard
                       key={topic.id}
                       topic={topic}
-                      onViewDetails={handleViewDetails}
-                      onRegister={handleRegister}
-                      onUnregister={handleUnregister}
-                      currentUser={currentUser}
                     />
                   ))}
                 </div>

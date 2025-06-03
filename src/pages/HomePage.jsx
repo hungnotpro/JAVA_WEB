@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import Header from '../components/Header';
-import useAuth from '../hooks/useAuth';
+import { useAuth } from '../contexts/AuthContext';
 import Button from '../components/Button';
 
 const HomePage = () => {
@@ -20,14 +20,12 @@ const HomePage = () => {
             <p className="mt-5 max-w-xl mx-auto text-xl text-gray-500">
               Nền tảng đăng ký đề tài dành cho sinh viên và giảng viên
             </p>
-            
-            <div className="mt-10">
-              {isAuthenticated() ? (
+              <div className="mt-10">
+              {typeof isAuthenticated === 'function' && isAuthenticated() ? (
                 <div className="space-y-6">
                   <p className="text-lg text-gray-600">
                     Xin chào, {currentUser?.name || currentUser?.email}!
-                  </p>
-                  <Link to={currentUser?.isAdmin() ? '/admin/dashboard' : '/student/dashboard'}>
+                  </p>                  <Link to={currentUser?.role === 'ADMIN' ? '/admin/dashboard' : '/student/dashboard'}>
                     <Button variant="primary" size="lg">
                       Đi đến Dashboard
                     </Button>

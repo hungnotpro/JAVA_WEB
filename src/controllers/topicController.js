@@ -1,189 +1,144 @@
-import topicService from '../services/topicService';
+import apiClient from '../utils/apiClient';
 import TopicModel from '../models/TopicModel';
 
 /**
- * Controller cho việc quản lý đề tài
- * Xử lý logic nghiệp vụ trước khi gọi services
+ * Controller xử lý các thao tác liên quan đến đề tài
  */
 const topicController = {
   /**
-   * Lấy danh sách tất cả các đề tài
+   * Lấy tất cả đề tài
    * @returns {Promise<Array<TopicModel>>} Danh sách đề tài
    */
-  async getAllTopics() {
+  getAllTopics: async () => {
     try {
-      const topics = await topicService.getAllTopics();
-      return topics;
+      const response = await apiClient.get('/topic');
+      
+      if (response.data && response.data.code === 1000) {
+        return response.data.result.map(topic => TopicModel.fromAPI(topic));
+      } else {
+        throw new Error(response.data?.message || 'Không thể lấy danh sách đề tài');
+      }
     } catch (error) {
-      console.error('Error in getAllTopics controller:', error);
+      console.error('Controller error - getAllTopics:', error);
+      if (error.response && error.response.data) {
+        throw new Error(error.response.data.message || 'Đã xảy ra lỗi khi lấy danh sách đề tài');
+      }
       throw error;
     }
   },
 
   /**
-   * Lấy thông tin chi tiết một đề tài
-   * @param {string|number} id ID của đề tài
+   * Lấy thông tin đề tài theo ID
+   * @param {number} topicId ID của đề tài
    * @returns {Promise<TopicModel>} Thông tin đề tài
    */
-  async getTopicById(id) {
-    if (!id) {
-      throw new Error('ID đề tài không được để trống');
-    }
-
+  getTopicById: async (topicId) => {
     try {
-      const topic = await topicService.getTopicById(id);
-      return topic;
+      const response = await apiClient.get(`/topic/${topicId}`);
+      
+      if (response.data && response.data.code === 1000) {
+        return TopicModel.fromAPI(response.data.result);
+      } else {
+        throw new Error(response.data?.message || 'Không thể lấy thông tin đề tài');
+      }
     } catch (error) {
-      console.error(`Error in getTopicById controller for ID ${id}:`, error);
+      console.error(`Controller error - getTopicById(${topicId}):`, error);
+      if (error.response && error.response.data) {
+        throw new Error(error.response.data.message || 'Đã xảy ra lỗi khi lấy thông tin đề tài');
+      }
       throw error;
     }
   },
 
   /**
-   * Tạo đề tài mới (Admin)
-   * @param {Object} topicData Dữ liệu đề tài mới
+   * Tạo đề tài mới (dành cho admin)
+   * @param {Object} topicData Thông tin đề tài
    * @returns {Promise<TopicModel>} Đề tài đã tạo
    */
-  async createTopic(topicData) {
-    // Kiểm tra dữ liệu đầu vào
-    if (!topicData.title || !topicData.title.trim()) {
-      throw new Error('Tiêu đề đề tài không được để trống');
-    }
-
-    if (!topicData.lecturer || !topicData.lecturer.trim()) {
-      throw new Error('Tên giảng viên hướng dẫn không được để trống');
-    }
-
+  createTopic: async (topicData) => {
     try {
-      // Chuyển đổi thành model trước khi gửi đi
-      const topicModel = new TopicModel(topicData);
-      const createdTopic = await topicService.createTopic(topicModel.toJSON());
-      return createdTopic;
+      const response = await apiClient.post('/topic', topicData);
+      
+      if (response.data && response.data.code === 1000) {
+        return TopicModel.fromAPI(response.data.result);
+      } else {
+        throw new Error(response.data?.message || 'Không thể tạo đề tài');
+      }
     } catch (error) {
-      console.error('Error in createTopic controller:', error);
+      console.error('Controller error - createTopic:', error);
+      if (error.response && error.response.data) {
+        throw new Error(error.response.data.message || 'Đã xảy ra lỗi khi tạo đề tài');
+      }
       throw error;
     }
   },
 
   /**
-   * Cập nhật đề tài (Admin)
-   * @param {string|number} id ID của đề tài
-   * @param {Object} topicData Dữ liệu đề tài cần cập nhật
+   * Cập nhật đề tài (dành cho admin)
+   * @param {number} topicId ID của đề tài
+   * @param {Object} topicData Thông tin cập nhật
    * @returns {Promise<TopicModel>} Đề tài đã cập nhật
    */
-  async updateTopic(id, topicData) {
-    if (!id) {
-      throw new Error('ID đề tài không được để trống');
-    }
-
-    // Kiểm tra dữ liệu đầu vào
-    if (topicData.title && !topicData.title.trim()) {
-      throw new Error('Tiêu đề đề tài không được để trống');
-    }
-
+  updateTopic: async (topicId, topicData) => {
     try {
-      // Lấy thông tin đề tài hiện tại
-      const currentTopic = await this.getTopicById(id);
+      const response = await apiClient.put(`/topic/${topicId}`, topicData);
       
-      // Kết hợp dữ liệu hiện tại với dữ liệu mới
-      const updatedData = {...currentTopic, ...topicData};
-      
-      // Chuyển đổi thành model trước khi gửi đi
-      const topicModel = new TopicModel(updatedData);
-      const updatedTopic = await topicService.updateTopic(id, topicModel.toJSON());
-      return updatedTopic;
+      if (response.data && response.data.code === 1000) {
+        return TopicModel.fromAPI(response.data.result);
+      } else {
+        throw new Error(response.data?.message || 'Không thể cập nhật đề tài');
+      }
     } catch (error) {
-      console.error(`Error in updateTopic controller for ID ${id}:`, error);
+      console.error(`Controller error - updateTopic(${topicId}):`, error);
+      if (error.response && error.response.data) {
+        throw new Error(error.response.data.message || 'Đã xảy ra lỗi khi cập nhật đề tài');
+      }
       throw error;
     }
   },
 
   /**
-   * Xóa đề tài (Admin)
-   * @param {string|number} id ID của đề tài
+   * Xóa đề tài (dành cho admin)
+   * @param {number} topicId ID của đề tài
    * @returns {Promise<boolean>} Kết quả xóa
    */
-  async deleteTopic(id) {
-    if (!id) {
-      throw new Error('ID đề tài không được để trống');
-    }
-
+  deleteTopic: async (topicId) => {
     try {
-      // Kiểm tra xem đề tài có tồn tại không
-      await this.getTopicById(id);
+      const response = await apiClient.delete(`/topic/${topicId}`);
       
-      // Xóa đề tài
-      const result = await topicService.deleteTopic(id);
-      return result;
-    } catch (error) {
-      console.error(`Error in deleteTopic controller for ID ${id}:`, error);
-      throw error;
-    }
-  },
-
-  /**
-   * Đăng ký đề tài (Student)
-   * @param {string|number} topicId ID của đề tài
-   * @returns {Promise<Object>} Kết quả đăng ký
-   */
-  async registerTopic(topicId) {
-    if (!topicId) {
-      throw new Error('ID đề tài không được để trống');
-    }
-
-    try {
-      // Kiểm tra thông tin đề tài trước khi đăng ký
-      const topic = await this.getTopicById(topicId);
-      
-      // Kiểm tra xem đề tài còn slot không
-      if (!topic.hasAvailableSlots()) {
-        throw new Error('Đề tài đã đủ số lượng sinh viên đăng ký');
+      if (response.data && response.data.code === 1000) {
+        return true;
+      } else {
+        throw new Error(response.data?.message || 'Không thể xóa đề tài');
       }
-      
-      // Kiểm tra deadline
-      if (topic.isExpired()) {
-        throw new Error('Đã hết hạn đăng ký đề tài');
+    } catch (error) {
+      console.error(`Controller error - deleteTopic(${topicId}):`, error);
+      if (error.response && error.response.data) {
+        throw new Error(error.response.data.message || 'Đã xảy ra lỗi khi xóa đề tài');
       }
+      throw error;
+    }
+  },
+
+  /**
+   * Hủy đăng ký đề tài (dành cho sinh viên)
+   * @param {number} topicId ID của đề tài
+   * @returns {Promise<boolean>} Kết quả hủy đăng ký
+   */
+  unregisterTopic: async (topicId) => {
+    try {
+      const response = await apiClient.delete(`/group/topic/${topicId}/unregister`);
       
-      // Đăng ký đề tài
-      const result = await topicService.registerTopic(topicId);
-      return result;
+      if (response.data && response.data.code === 1000) {
+        return true;
+      } else {
+        throw new Error(response.data?.message || 'Không thể hủy đăng ký đề tài');
+      }
     } catch (error) {
-      console.error(`Error in registerTopic controller for ID ${topicId}:`, error);
-      throw error;
-    }
-  },
-
-  /**
-   * Hủy đăng ký đề tài (Student)
-   * @param {string|number} topicId ID của đề tài
-   * @returns {Promise<Object>} Kết quả hủy đăng ký
-   */
-  async unregisterTopic(topicId) {
-    if (!topicId) {
-      throw new Error('ID đề tài không được để trống');
-    }
-
-    try {
-      // Hủy đăng ký đề tài
-      const result = await topicService.unregisterTopic(topicId);
-      return result;
-    } catch (error) {
-      console.error(`Error in unregisterTopic controller for ID ${topicId}:`, error);
-      throw error;
-    }
-  },
-
-  /**
-   * Lấy danh sách đề tài đã đăng ký của sinh viên
-   * @returns {Promise<Array<TopicModel>>} Danh sách đề tài đã đăng ký
-   */
-  async getStudentTopics() {
-    try {
-      const topics = await topicService.getStudentTopics();
-      return topics;
-    } catch (error) {
-      console.error('Error in getStudentTopics controller:', error);
+      console.error(`Controller error - unregisterTopic(${topicId}):`, error);
+      if (error.response && error.response.data) {
+        throw new Error(error.response.data.message || 'Đã xảy ra lỗi khi hủy đăng ký đề tài');
+      }
       throw error;
     }
   }

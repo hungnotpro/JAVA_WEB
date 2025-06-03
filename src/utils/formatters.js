@@ -1,69 +1,53 @@
 /**
- * Định dạng ngày tháng từ chuỗi ISO hoặc đối tượng Date
- * @param {string|Date} date - Ngày cần định dạng
- * @param {object} options - Tùy chọn định dạng
- * @returns {string} - Chuỗi ngày tháng đã định dạng
+ * Hàm định dạng ngày tháng từ chuỗi ISO hoặc Date object thành định dạng dễ đọc
+ * @param {string|Date} dateInput - Chuỗi thời gian ISO hoặc Date object
+ * @param {boolean} includeTime - Có hiển thị giờ phút hay không
+ * @returns {string} Chuỗi ngày tháng đã định dạng
  */
-export const formatDate = (date, options = {}) => {
-  if (!date) return '';
-  
-  const dateObj = date instanceof Date ? date : new Date(date);
-  
-  // Kiểm tra xem Date có hợp lệ không
-  if (isNaN(dateObj.getTime())) {
-    return '';
-  }
-  
-  // Các tùy chọn mặc định
-  const defaultOptions = {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    ...options
-  };
+export const formatDate = (dateInput, includeTime = false) => {
+  if (!dateInput) return 'N/A';
   
   try {
-    return new Intl.DateTimeFormat('vi-VN', defaultOptions).format(dateObj);
+    const date = new Date(dateInput);
+    
+    // Kiểm tra ngày hợp lệ
+    if (isNaN(date.getTime())) {
+      return 'Ngày không hợp lệ';
+    }
+    
+    // Định dạng ngày tháng năm
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    
+    let formattedDate = `${day}/${month}/${year}`;
+    
+    // Thêm giờ phút nếu cần
+    if (includeTime) {
+      const hours = date.getHours().toString().padStart(2, '0');
+      const minutes = date.getMinutes().toString().padStart(2, '0');
+      formattedDate += ` ${hours}:${minutes}`;
+    }
+    
+    return formattedDate;
   } catch (error) {
     console.error('Error formatting date:', error);
-    return '';
+    return 'N/A';
   }
 };
 
 /**
- * Định dạng số tiền
- * @param {number} amount - Số tiền cần định dạng
- * @param {string} currency - Loại tiền tệ (mặc định: VND)
- * @returns {string} - Chuỗi số tiền đã định dạng
+ * Hàm định dạng số thành chuỗi có dấu phẩy ngăn cách hàng nghìn
+ * @param {number} number - Số cần định dạng
+ * @returns {string} Chuỗi số đã định dạng
  */
-export const formatCurrency = (amount, currency = 'VND') => {
-  if (amount === null || amount === undefined) return '';
+export const formatNumber = (number) => {
+  if (number === null || number === undefined) return 'N/A';
   
   try {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: currency
-    }).format(amount);
+    return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   } catch (error) {
-    console.error('Error formatting currency:', error);
-    return '';
+    console.error('Error formatting number:', error);
+    return number.toString();
   }
-};
-
-/**
- * Rút gọn văn bản nếu quá dài
- * @param {string} text - Văn bản cần rút gọn
- * @param {number} maxLength - Độ dài tối đa
- * @returns {string} - Văn bản đã rút gọn
- */
-export const truncateText = (text, maxLength = 100) => {
-  if (!text) return '';
-  
-  if (text.length <= maxLength) {
-    return text;
-  }
-  
-  return text.substring(0, maxLength) + '...';
 };

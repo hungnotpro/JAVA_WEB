@@ -5,44 +5,49 @@
 class TopicModel {
   constructor(data = {}) {
     this.id = data.id || null;
-    this.title = data.title || '';
-    this.description = data.description || '';
-    this.lecturer = data.lecturer || '';
-    this.maxStudents = data.maxStudents || 1;
-    this.registeredStudents = data.registeredStudents || [];
-    this.status = data.status || 'OPEN'; // 'OPEN', 'FULL', 'CLOSED'
-    this.createdAt = data.createdAt ? new Date(data.createdAt) : new Date();
-    this.deadline = data.deadline ? new Date(data.deadline) : null;
+    this.tenDeTai = data.tenDeTai || '';
+    this.moTa = data.moTa || '';
+    this.soNhomToiDa = data.soNhomToiDa || 1;
+    this.soNhomDaDangKy = data.soNhomDaDangKy || 0;
+    this.soThanhVienToiThieu = data.soThanhVienToiThieu || 1;
+    this.soThanhVienToiDa = data.soThanhVienToiDa || 1;
+    this.nguoiTaoId = data.nguoiTaoId || null;
+    this.thoiGianTao = data.thoiGianTao ? new Date(data.thoiGianTao) : new Date();
+    
+    // Các trường bổ sung cho tương thích với mã cũ
+    this.title = data.tenDeTai || data.title || '';
+    this.description = data.moTa || data.description || '';
+    this.status = this.calculateStatus();
+  }  // Tính toán trạng thái của đề tài
+  calculateStatus() {
+    if (this.soNhomDaDangKy >= this.soNhomToiDa) {
+      return 'FULL';
+    }
+    return 'OPEN';
   }
+
   // Kiểm tra xem đề tài còn chỗ trống không
   hasAvailableSlots() {
-    return (this.registeredStudents?.length || 0) < (this.maxStudents || 1);
+    return this.soNhomDaDangKy < this.soNhomToiDa;
   }
-
-  // Kiểm tra xem đề tài có hết hạn chưa
-  isExpired() {
-    if (!this.deadline) return false;
-    return new Date() > this.deadline;
-  }
-
   // Kiểm tra xem sinh viên đã đăng ký đề tài này chưa
   isRegisteredBy(studentId) {
-    if (!this.registeredStudents || !studentId) return false;
-    return this.registeredStudents.some(student => student?.id === studentId);
+    // Không thể kiểm tra trực tiếp từ model, cần phải kiểm tra từ danh sách nhóm
+    return false;
   }
 
   // Factory method để tạo TopicModel từ dữ liệu API
   static fromAPI(apiData) {
     return new TopicModel({
       id: apiData.id,
-      title: apiData.title,
-      description: apiData.description,
-      lecturer: apiData.lecturer,
-      maxStudents: apiData.maxStudents,
-      registeredStudents: apiData.registeredStudents || [],
-      status: apiData.status,
-      createdAt: apiData.createdAt,
-      deadline: apiData.deadline
+      tenDeTai: apiData.tenDeTai,
+      moTa: apiData.moTa,
+      soNhomToiDa: apiData.soNhomToiDa,
+      soNhomDaDangKy: apiData.soNhomDaDangKy,
+      soThanhVienToiThieu: apiData.soThanhVienToiThieu,
+      soThanhVienToiDa: apiData.soThanhVienToiDa,
+      nguoiTaoId: apiData.nguoiTaoId,
+      thoiGianTao: apiData.thoiGianTao
     });
   }
 
@@ -50,12 +55,12 @@ class TopicModel {
   toJSON() {
     return {
       id: this.id,
-      title: this.title,
-      description: this.description,
-      lecturer: this.lecturer,
-      maxStudents: this.maxStudents,
-      status: this.status,
-      deadline: this.deadline instanceof Date ? this.deadline.toISOString() : null
+      tenDeTai: this.tenDeTai,
+      moTa: this.moTa,
+      soNhomToiDa: this.soNhomToiDa,
+      soThanhVienToiThieu: this.soThanhVienToiThieu,
+      soThanhVienToiDa: this.soThanhVienToiDa,
+      nguoiTaoId: this.nguoiTaoId
     };
   }
 }
